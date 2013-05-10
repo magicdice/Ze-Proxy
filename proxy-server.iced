@@ -20,9 +20,13 @@ app.use "/css", express.static "css"
 app.use "/js", express.static "js"
 
 app.all "/", (request, response) ->
-	response.send "Hello World"
+	fs.readFile "index.html", {"encoding": "utf-8"}, (err, data) ->
+		$ = cheerio.load data
+		$("#year").text(new Date().getFullYear());
+		response.send $.html()
 
 app.use (req, res, next) ->
-  res.send 404, "Sorry cant find that!"
+	fs.readFile "404.html", {"encoding": "utf-8"}, (err, data) ->
+		res.send 404, data
 app.listen PORT, ->
 	console.log "Ze Proxy is listening on port #{PORT}"
