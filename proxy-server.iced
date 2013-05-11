@@ -10,6 +10,7 @@ Transform = require('stream').Transform
 cheerio = require "cheerio"
 express = require "express"
 request = require "request"
+uncompress = require("compress-buffer").uncompress
 
 uppercase = new Transform {decodeStrings: false}
 uppercase._transform = (chunk, encoding, done) ->
@@ -40,18 +41,21 @@ app.all /^\/serve\/http\/[a-zA-Z]{1}([\w\-]+\.)+([\w]{2,5}).*/, (req, res) ->
 	headers["accept-encoding"] = ""
 	#return res.send JSON.stringify req.headers
 
-	requestedPage = request {"uri": url, "headers": headers, "method": req.method} #"encoding": "utf-8"
-
-	###
-	STUFF = ""
-	requestedPage.on "data", (stuff) ->
-		STUFF += stuff
-	requestedPage.on "end", ->
-		STUFF = new Buffer(STUFF)
-		zlib.gunzip STUFF, (daata) ->
-			res.send(daata + "{}Hi")
-	###
-	requestedPage.pipe(res)
+	requestedPage = request {"uri": url, "headers": headers, "method": req.method, "encoding": null}, (err, httpResp, data) ->
+		encoding = httpResp.headers["content-encoding"]
+		if encoding? and encoding.indexOf("gzip") isnt -1
+			data = uncompress data
+		data = data.toString "utf-8"
+		$ = cheerio.load data
+		$("a[href]").each (i, element) ->
+			$(@).attr("href", urllib.resolve(url, $(@).attr("href")))
+		$("link[href]").each (i, element) ->
+			$(@).attr("href", urllib.resolve(url, $(@).attr("href")))
+		$("script[src]").each (i, element) ->
+			$(@).attr("src", urllib.resolve(url, $(@).attr("src")))
+		$("img[src]").each (i, element) ->
+			$(@).attr("src", urllib.resolve(url, $(@).attr("src")))
+		response.send $.html()
 # HTTPS URLs
 
 
