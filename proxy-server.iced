@@ -4,10 +4,16 @@ fs = require "fs"
 crypto = require "crypto"
 qs = require "querystring"
 urllib = require "url"
+zlib = require "zlib"
+Transform = require('stream').Transform
 
 cheerio = require "cheerio"
 express = require "express"
 request = require "request"
+
+uppercase = new Transform {decodeStrings: false}
+uppercase._transform = (chunk, encoding, done) ->
+	done null, chunk.toUpperCase()
 
 app = express()
 
@@ -28,10 +34,24 @@ app.all /^\/serve\/http\/[a-zA-Z]{1}([\w\-]+\.)+([\w]{2,5}).*/, (req, res) ->
 	url = req.url.split("/serve/http/").join ""
 	url = "http://" + url
 	url = decodeURIComponent url
+	console.log "Requested URL is #{url}"
 	
-	requestedPage = request url
-	req.pipe requestedPage
-	requestedPage.pipe res
+	headers = req.headers
+	headers["accept-encoding"] = ""
+	#return res.send JSON.stringify req.headers
+
+	requestedPage = request {"uri": url, "headers": headers, "method": req.method} #"encoding": "utf-8"
+
+	###
+	STUFF = ""
+	requestedPage.on "data", (stuff) ->
+		STUFF += stuff
+	requestedPage.on "end", ->
+		STUFF = new Buffer(STUFF)
+		zlib.gunzip STUFF, (daata) ->
+			res.send(daata + "{}Hi")
+	###
+	requestedPage.pipe(res)
 # HTTPS URLs
 
 
