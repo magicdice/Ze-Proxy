@@ -10,7 +10,7 @@ Transform = require('stream').Transform
 cheerio = require "cheerio"
 express = require "express"
 request = require "request"
-uncompress = require("compress-buffer").uncompress
+phantom = require "node-phantom"
 
 uppercase = new Transform {decodeStrings: false}
 uppercase._transform = (chunk, encoding, done) ->
